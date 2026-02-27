@@ -1,4 +1,4 @@
-import { Decimal } from "@/generated/runtime/client"
+import { Decimal } from "@/../../generated/runtime/client"
 
 export function formatCurrency(value: number | string | Decimal) {
     const amount =
