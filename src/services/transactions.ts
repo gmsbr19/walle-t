@@ -35,3 +35,41 @@ export async function getDailyHistory(year: number, month: number) {
 
     return grouped
 }
+
+type RawYearMonth = { year: number | bigint; month: number | bigint };
+
+export async function getTransactionYearMonths(
+  useCompetenceDate = false
+) {
+  const rows = useCompetenceDate
+    ? await prisma.$queryRaw<RawYearMonth[]>`
+        SELECT DISTINCT
+          CAST(strftime('%Y', "competenceDate") AS INTEGER) AS year,
+          CAST(strftime('%m', "competenceDate") AS INTEGER) AS month
+        FROM "Transaction"
+        ORDER BY year DESC, month DESC
+      `
+    : await prisma.$queryRaw<RawYearMonth[]>`
+        SELECT DISTINCT
+          CAST(strftime('%Y', "date") AS INTEGER) AS year,
+          CAST(strftime('%m', "date") AS INTEGER) AS month
+        FROM "Transaction"
+        ORDER BY year DESC, month DESC
+      `;
+
+  const grouped = new Map<number, number[]>();
+
+  for (const row of rows) {
+    const year = Number(row.year);
+    const month = Number(row.month);
+
+    const months = grouped.get(year) ?? [];
+    months.push(month);
+    grouped.set(year, months);
+  }
+
+  return [...grouped.entries()].map(([year, months]) => ({
+    year,
+    months: [...new Set(months)].sort((a, b) => a - b),
+  }));
+}
